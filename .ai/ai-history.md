@@ -1,0 +1,59 @@
+# AI 协作历史记录
+
+> 本文件由 AI 助手维护，记录项目关键决策与讨论，方便后续回看上下文。
+
+## 项目概览
+- **名称**：book-reader
+- **定位**：跨平台电子书阅读器（类 Moon+ Reader，但功能更少）
+- **风格**：Material You + Material 3
+- **技术栈**：Flutter + Dart 3
+- **创建/更新**：2026-10-12
+
+## 平台优先级（用户确认）
+1. 主：Android + Linux（用户日常使用）+ Windows
+2. 次：macOS
+3. 最后：iOS（需 macOS 主机 + Apple 开发者账号）
+
+## 关键技术与架构决策
+- **状态管理 / DI**：Riverpod（编译安全、易测试、Provider 即 DI）
+- **路由**：go_router（声明式、支持深链）
+- **主题**：Material 3 + `dynamic_color`（Android 12+ 动态取色，否则回退种子色）
+- **v1 持久化**：`shared_preferences`（仅存书架目录、阅读模式、字号）
+- **书架模型 v1**：目录扫描（无数据库）；进度/书签后续接 Drift/sqflite
+- **格式支持优先级**：
+  - TXT（最底层，零成本）
+  - EPUB（上层，v1 仅抽取纯文本复用 TXT 渲染管线）
+  - PDF（之后，需单独渲染引擎）
+  - 全格式（最后）
+- **v1 功能范围**：
+  - 书架：选择书架目录（递归扫描）+ 导入书籍（复制到应用目录）
+  - 阅读：滚动 + 分页（无仿真翻页动画），字号可调
+- **EPUB v1 限制**：仅纯文本（图片/样式/目录树为后续增强）
+
+## 架构（分层 + 功能优先）
+```
+lib/
+  app/        # 入口、路由、主题
+  core/       # 与功能无关：models / loader(BookLoader 抽象+注册表) / services / providers
+  features/
+    library/  # 书架 UI + controller
+    reader/   # 阅读页 + controller + widgets(scroll/paged/txt_paginator)
+```
+- **核心解耦点**：阅读器只依赖 `BookDocument`；新增格式只需实现 `BookLoader` 并在 `providers.dart` 注册，UI 不变。
+- **EPUB 富文本增强点**：将 `BookChapter.content` 从 `String` 升级为结构化节点，新增富文本渲染 widget。
+
+## Git
+- **远端**：https://github.com/SoknyArtemis/book-reader.git
+- **状态**：待连接（init / add remote / commit / push）
+
+## 运行注意事项
+- 当前仅手写 `lib/` + `pubspec.yaml` + `analysis_options.yaml`，平台工程目录需先跑 `flutter create .`（注意它会覆盖 lib/main.dart 与 pubspec.yaml，需先暂存再还原）。
+- Linux 桌面：`flutter config --enable-linux-desktop`（需 clang/cmake/ninja/libgtk-3-dev）
+- Windows：`flutter config --enable-windows-desktop`（需 VS2022 + C++ 桌面开发 workload）
+- Android 限制：`file_picker.getDirectoryPath` 在 Android 11+ 走 SAF，返回路径 `dart:io File` 可能读不了；"导入到应用私有目录"路径稳定。
+
+## 待办 / 下一步
+1. 阅读进度自动保存（接 Drift）
+2. EPUB 富文本渲染（flutter_html 或 WebView）
+3. 目录 / 书签 / 笔记、TTS、PDF 加载器
+4. 测试策略与 CI（待讨论）
