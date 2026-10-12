@@ -44,7 +44,7 @@ lib/
 
 ## Git
 - **远端**：https://github.com/SoknyArtemis/book-reader.git
-- **状态**：待连接（init / add remote / commit / push）
+- **状态**：已连接并推送（main 分支，最新提交 63460ac；本地初始提交基于远端 Initial commit 变基，使用 gh CLI 凭据）
 
 ## 运行注意事项
 - 当前仅手写 `lib/` + `pubspec.yaml` + `analysis_options.yaml`，平台工程目录需先跑 `flutter create .`（注意它会覆盖 lib/main.dart 与 pubspec.yaml，需先暂存再还原）。
