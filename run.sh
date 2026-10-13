@@ -20,21 +20,29 @@
 #
 # 可用环境变量覆盖默认值:
 #   BREW_PREFIX    brew 安装前缀（默认 /home/linuxbrew/.linuxbrew）
-#   FLUTTER_BIN    flutter/bin 目录（默认 $HOME/flutter/bin）
+#   FLUTTER_BIN    fvm 所在 bin 目录（默认 $BREW_PREFIX/bin；Flutter 由 fvm 管理）
 set -euo pipefail
 shopt -s nullglob
 
 # ---- 路径 ----
 BREW_PREFIX="${BREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
-FLUTTER_BIN="${FLUTTER_BIN:-$HOME/flutter/bin}"
+FLUTTER_BIN="${FLUTTER_BIN:-$BREW_PREFIX/bin}"
 
 # ---- 环境变量 ----
 export PATH="$FLUTTER_BIN:$PATH"
-export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+# 构建期依赖（GTK3 等）由系统 pkg-config 解析；不再前置 brew，
+# 以免 brew 版 libgtk-3 被链入二进制、遮蔽系统 GTK 的 Breeze 主题。
+export PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
 export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
 export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
-# GTK 等运行时库走 brew
+# 启动期 GTK 运行时走系统库（已通过 GDK_BACKEND=wayland 走原生 Wayland 后端）
 export DISPLAY="${DISPLAY:-:0}"
+
+# 强制 GTK 走原生 Wayland 后端（本项目面向 KDE Plasma/Wayland），
+# 以获得正确的 CSD 标题栏与 Breeze 主题集成；
+# 否则在 XWayland/KWin 下会退化为老式标题栏（看着像 GTK2）。
+# 若该环境变量已被显式设置则尊重其值，便于在纯 X11 环境下临时覆盖。
+export GDK_BACKEND="${GDK_BACKEND:-wayland}"
 
 # 切到脚本所在目录（项目根），兼容任意调用路径
 cd "$(dirname "$0")"
@@ -62,20 +70,16 @@ BUNDLE="build/linux/x64/release/bundle"
 EXE="$BUNDLE/book_reader"
 
 cmd="${1:-run}"
-shift || true
 
 case "$cmd" in
   analyze)
-    flutter --no-version-check analyze
+    fvm flutter --no-version-check analyze
     ;;
   build)
-    LD_LIBRARY_PATH="$BREW_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-      flutter --no-version-check build linux
+    fvm flutter --no-version-check build linux
     ;;
   run|*)
-    LD_LIBRARY_PATH="$BREW_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-      flutter --no-version-check build linux
-    LD_LIBRARY_PATH="$BREW_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-      "$EXE"
+    fvm flutter --no-version-check build linux
+    "$EXE"
     ;;
 esac

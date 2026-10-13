@@ -37,7 +37,10 @@ static void my_application_activate(GApplication* application) {
   GdkScreen* screen = gtk_window_get_screen(window);
   if (GDK_IS_X11_SCREEN(screen)) {
     const gchar* wm_name = gdk_x11_screen_get_window_manager_name(screen);
-    if (g_strcmp0(wm_name, "GNOME Shell") != 0) {
+    // KDE(KWin) 与 GNOME 均良好支持 CSD 标题栏，保持现代外观；
+    // 仅对其它非 GNOME/KDE 的 X11 窗口管理器回退传统标题栏。
+    if (g_strcmp0(wm_name, "GNOME Shell") != 0 &&
+        g_strcmp0(wm_name, "KWin") != 0) {
       use_header_bar = FALSE;
     }
   }
@@ -45,11 +48,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "book_reader");
+    gtk_header_bar_set_title(header_bar, "Book Reader");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "book_reader");
+    gtk_window_set_title(window, "Book Reader");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
