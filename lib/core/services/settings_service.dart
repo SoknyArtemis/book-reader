@@ -1,11 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// 阅读翻页模式。
-enum ReaderMode { scroll, page }
-
-extension ReaderModeX on ReaderMode {
-  String get label => this == ReaderMode.scroll ? '滚动' : '分页';
-}
+import '../models/reader_mode.dart';
 
 /// 应用设置（持久化于 SharedPreferences）。
 /// v1 保存：书架目录、阅读模式、字号。

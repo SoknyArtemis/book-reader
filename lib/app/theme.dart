@@ -1,23 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 主题。支持系统动态取色（Material You）：
-/// 在 Android 12+ 上从壁纸提取配色，否则回退到种子色。
-class AppTheme {
-  static ThemeData light(ColorScheme? dynamicScheme) {
-    final scheme = dynamicScheme ?? ColorScheme.fromSeed(seedColor: Colors.teal);
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      brightness: Brightness.light,
-    );
-  }
-
-  static ThemeData dark(ColorScheme? dynamicScheme) {
-    final base = dynamicScheme ?? ColorScheme.fromSeed(seedColor: Colors.teal);
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: base,
-      brightness: Brightness.dark,
-    );
-  }
+/// 构建 Material3 主题；优先使用系统动态取色（dynamic_color 传入的 scheme），
+/// 否则回退到固定种子色。
+ThemeData buildAppTheme(ColorScheme? dynamicScheme, {bool isDark = false}) {
+  final ColorScheme scheme = dynamicScheme ??
+      ColorScheme.fromSeed(
+        seedColor: const Color(0xFF6750A4),
+        brightness: isDark ? Brightness.dark : Brightness.light,
+      );
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    appBarTheme: const AppBarTheme(centerTitle: false),
+  );
 }

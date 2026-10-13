@@ -6,7 +6,9 @@ enum BookFormat { txt, epub, unknown }
 extension BookFormatX on BookFormat {
   /// 根据文件路径推断格式。
   static BookFormat fromPath(String path) {
-    final ext = path.toLowerCase().split('.').last;
+    final lower = path.toLowerCase();
+    final dot = lower.lastIndexOf('.');
+    final ext = dot >= 0 ? lower.substring(dot + 1) : '';
     switch (ext) {
       case 'txt':
         return BookFormat.txt;
