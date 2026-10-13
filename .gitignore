@@ -29,7 +29,6 @@ unlinked.ds
 .unlinked.json
 flutter_export_environment.sh
 **/GeneratedPluginRegistrant.*
-.fvmrc
 
 # Coverage
 coverage/
@@ -46,3 +45,6 @@ coverage/
 
 # IDE / agent project data
 .codebuddy/
+
+# FVM Version Cache
+.fvm/
