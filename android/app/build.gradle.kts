@@ -49,3 +49,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // SAF 目录遍历（DocumentFile），用于 Android 11+ 作用域存储下原地读取外部文件夹
+    implementation("androidx.documentfile:documentfile:1.0.1")
+}

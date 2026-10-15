@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import '../../core/services/saf_service.dart';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import '../../core/errors/failures.dart';
@@ -23,7 +23,7 @@ class EpubBookLoader implements BookLoader {
   @override
   Future<BookDocument> load(Book book) async {
     try {
-      final bytes = await File(book.path).readAsBytes();
+      final bytes = await SafService.readBookBytes(book.path);
       final archive = ZipDecoder().decodeBytes(bytes);
       final fileMap = {for (final f in archive.files) _normPath(f.name): f};
 

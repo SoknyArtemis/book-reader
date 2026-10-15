@@ -45,7 +45,7 @@ class App extends StatelessWidget {
               create: (ctx) => GetLibraryBooks(ctx.read<LibraryRepository>()),
             ),
             RepositoryProvider<ImportBooks>(
-              create: (ctx) => ImportBooks(ctx.read<LibraryRepository>()),
+              create: (ctx) => ImportBooks(ctx.read<SettingsService>()),
             ),
             RepositoryProvider<LoadBook>(
               create: (ctx) => LoadBook(ctx.read<BookRepository>()),

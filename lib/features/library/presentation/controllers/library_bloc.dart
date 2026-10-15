@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../../core/models/book.dart';
+import '../../../../core/models/imported_book.dart';
 import '../../../../core/services/settings_service.dart';
 import '../../domain/usecases/get_library_books.dart';
 import '../../domain/usecases/import_books.dart';
@@ -34,14 +35,10 @@ class LibraryDirectoryPicked extends LibraryEvent {
 }
 
 class LibraryImportRequested extends LibraryEvent {
-  const LibraryImportRequested({
-    required this.paths,
-    required this.targetDir,
-  });
-  final List<String> paths;
-  final String targetDir;
+  const LibraryImportRequested({required this.items});
+  final List<ImportedBook> items;
   @override
-  List<Object?> get props => [paths, targetDir];
+  List<Object?> get props => [items];
 }
 
 class LibraryRefreshRequested extends LibraryEvent {
@@ -98,13 +95,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   final SettingsService _settings;
 
   Future<void> _loadFromDir(String? dir, Emitter<LibraryState> emit) async {
-    if (dir == null) {
-      emit(const LibraryLoaded([]));
-      return;
-    }
     emit(const LibraryLoading());
     try {
-      final books = await _getLibraryBooks(dir);
+      final books = await _getLibraryBooks(dir, _settings.importedBooks);
       emit(LibraryLoaded(books));
     } catch (e) {
       emit(LibraryFailure(_userMessage(e)));
@@ -130,9 +123,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) async {
     try {
-      await _importBooks(event.paths, event.targetDir);
-      await _settings.setLibraryDir(event.targetDir);
-      await _loadFromDir(event.targetDir, emit);
+      await _importBooks(event.items);
+      await _loadFromDir(_settings.libraryDir, emit);
     } catch (e) {
       emit(LibraryFailure(_userMessage(e)));
     }

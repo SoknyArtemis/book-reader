@@ -2,12 +2,45 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/models/book.dart';
+import '../../../../core/models/imported_book.dart';
+import '../../../../core/services/saf_service.dart';
 
-/// 文件系统数据源：扫描目录与导入文件。
+/// 文件系统数据源：扫描目录（或 SAF tree）与汇总导入项。
 class FileSystemLibraryDataSource {
   const FileSystemLibraryDataSource();
 
+  /// 汇总书架：所选外部文件夹（原地读）+ 单独导入的书籍。
+  Future<List<Book>> getBooks(String? dir, List<ImportedBook> imported) async {
+    final books = <Book>[];
+    if (dir != null) {
+      books.addAll(await scan(dir));
+    }
+    for (final it in imported) {
+      if (books.any((b) => b.id == it.path)) continue;
+      final format = BookFormatX.fromPath(it.name);
+      if (format == BookFormat.unknown) continue;
+      books.add(Book(
+        id: it.path,
+        title: p.basenameWithoutExtension(it.name),
+        format: format,
+        path: it.path,
+        sizeBytes: it.size,
+        addedAt: DateTime.now(),
+      ));
+    }
+    books.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return books;
+  }
+
+  /// 扫描文件夹：Android 上 dir 为 SAF tree URI，走 ContentResolver；否则 dart:io。
   Future<List<Book>> scan(String dirPath) async {
+    if (dirPath.startsWith('content://')) {
+      return _scanTree(dirPath);
+    }
+    return _scanFs(dirPath);
+  }
+
+  Future<List<Book>> _scanFs(String dirPath) async {
     final dir = Directory(dirPath);
     if (!await dir.exists()) return const [];
     final books = <Book>[];
@@ -35,18 +68,28 @@ class FileSystemLibraryDataSource {
         // 文件在列举后消失或无法访问，跳过。
       }
     }
-    books.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     return books;
   }
 
-  Future<void> importFiles(List<String> sourcePaths, String targetDir) async {
-    final dir = Directory(targetDir);
-    if (!await dir.exists()) await dir.create(recursive: true);
-    for (final src in sourcePaths) {
-      final file = File(src);
-      if (!await file.exists()) continue;
-      final name = p.basename(src);
-      await file.copy(p.join(targetDir, name));
+  /// 经 SAF 递归列出 tree 下的书籍（content URI），无需把文件拷进私有目录。
+  Future<List<Book>> _scanTree(String treeUri) async {
+    final list = await SafService.listTree(treeUri);
+    final books = <Book>[];
+    for (final item in list) {
+      final name = (item['name'] as String?) ?? '';
+      final uri = item['uri'] as String?;
+      if (uri == null) continue;
+      final format = BookFormatX.fromPath(name);
+      if (format == BookFormat.unknown) continue;
+      books.add(Book(
+        id: uri,
+        title: p.basenameWithoutExtension(name),
+        format: format,
+        path: uri,
+        sizeBytes: (item['size'] as int?) ?? 0,
+        addedAt: DateTime.now(),
+      ));
     }
+    return books;
   }
 }

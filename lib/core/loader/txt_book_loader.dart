@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
+import '../services/saf_service.dart';
 import 'package:charset/charset.dart';
-import '../errors/failures.dart';
 import '../models/book.dart';
 import 'book_loader.dart';
 
@@ -14,11 +13,7 @@ class TxtBookLoader implements BookLoader {
 
   @override
   Future<BookDocument> load(Book book) async {
-    final file = File(book.path);
-    if (!await file.exists()) {
-      throw const BookLoadFailure('文件不存在');
-    }
-    final text = decodeText(await file.readAsBytes());
+    final text = decodeText(await SafService.readBookBytes(book.path));
     final chapters = _splitChapters(text, book);
     return BookDocument(book: book, chapters: chapters);
   }

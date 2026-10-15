@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../../core/models/book.dart';
+import '../../../../core/models/imported_book.dart';
+import '../../../../core/services/saf_service.dart';
 import '../../../../core/services/settings_service.dart';
 import '../controllers/library_bloc.dart';
 import '../widgets/book_list_item.dart';
@@ -15,7 +17,6 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.read<SettingsService>();
     return BlocProvider(
       create: (ctx) => LibraryBloc(
         getLibraryBooks: ctx.read<GetLibraryBooks>(),
@@ -76,7 +77,7 @@ class LibraryScreen extends StatelessWidget {
                   heroTag: 'import',
                   tooltip: '导入书籍',
                   child: const Icon(Icons.file_upload),
-                  onPressed: () => _import(context, settings.libraryDir),
+                  onPressed: () => _import(context),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton(
@@ -95,24 +96,31 @@ class LibraryScreen extends StatelessWidget {
 
   Future<void> _pickDir(BuildContext context) async {
     final bloc = context.read<LibraryBloc>();
-    final dir = await FilePicker.platform.getDirectoryPath();
-    if (dir != null) {
-      bloc.add(LibraryDirectoryPicked(dir));
+    if (Platform.isAndroid) {
+      // Android 11+ 作用域存储：走 SAF 选目录并持久化授权，原地读取。
+      final uri = await SafService.pickLibraryTree();
+      if (uri != null) bloc.add(LibraryDirectoryPicked(uri));
+    } else {
+      final dir = await FilePicker.platform.getDirectoryPath();
+      if (dir != null) bloc.add(LibraryDirectoryPicked(dir));
     }
   }
 
-  Future<void> _import(BuildContext context, String? libraryDir) async {
+  Future<void> _import(BuildContext context) async {
     final bloc = context.read<LibraryBloc>();
-    final dir = libraryDir ??
-        '${(await getApplicationDocumentsDirectory()).path}/books';
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result != null) {
-      final paths = result.files
-          .where((f) => f.path != null)
-          .map((f) => f.path!)
-          .toList();
-      if (paths.isNotEmpty) {
-        bloc.add(LibraryImportRequested(paths: paths, targetDir: dir));
+      final items = <ImportedBook>[];
+      for (final f in result.files) {
+        if (f.path == null || f.name.isEmpty) continue;
+        if (Platform.isAndroid) {
+          // 持久化单文件读取授权，便于下次启动后仍能原地读取。
+          await SafService.persistUriPermission(f.path!);
+        }
+        items.add(ImportedBook(path: f.path!, name: f.name, size: f.size));
+      }
+      if (items.isNotEmpty) {
+        bloc.add(LibraryImportRequested(items: items));
       }
     }
   }
