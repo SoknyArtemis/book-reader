@@ -6,9 +6,9 @@
 
 - 你可以自由写 `ai-readme.d/` 下除了 `ai-readme.md` 的所有内容
 
-- memory 写在 `ai-readme.d/ai-can-write-history-here/` 里，不要写在 `/memory`，要带时间戳
+- 历史记录写在 `ai-readme.d/ai-can-write-history-here/` 里，带有时间戳
 
-- 笔记写在 `ai-readme.d/ai-can-write-note-here` 里
+- 笔记写在 `ai-readme.d/ai-can-write-note-here`
 
 - tmp 写在 `ai-readme.d/ai-can-write-tmp-here.md`
 
