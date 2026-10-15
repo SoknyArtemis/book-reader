@@ -137,17 +137,38 @@ class EpubBookLoader implements BookLoader {
   String _stripTags(String html) => html.replaceAll(RegExp(r'<[^>]+>'), ' ');
 
   /// 从 XHTML 抽取纯文本（v1 用正则，规避 DTD/实体解析问题，稳定且足够）。
+  ///
+  /// 块级元素（p/div/h1-6/li 等）转为段落分隔（\n\n），使正文能按容器宽度自动折行；
+  /// 段内原始换行与 <br> 统一压成空格，避免每行按源文件短行硬换行、填不满屏幕。
   String _extractText(String html) {
     var text = html;
     text = text.replaceAll(
         RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), ' ');
     text = text.replaceAll(
         RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), ' ');
+    // 块级元素 → 段落分隔；<br>/<hr> → 空格（随后随段内换行一起压成空格）
+    text = text.replaceAllMapped(
+      RegExp(r'</?(?:p|div|section|article|blockquote|h[1-6]|li|tr|br|hr)\b[^>]*>',
+          caseSensitive: false),
+      (m) => (m.group(0)!.contains('br') || m.group(0)!.contains('hr'))
+          ? ' '
+          : '\n\n',
+    );
+    // 其余标签（span/em/b/a/img 等）→ 空格
     text = text.replaceAll(RegExp(r'<[^>]+>'), ' ');
     text = _decodeEntities(text);
+    // 归一化空白：
+    //  1) 连续换行（段落）→ 占位符
+    //  2) 段内换行（源文件换行 / <br>）→ 空格，自动折行填满
+    //  3) 多余空格压成单个
+    //  4) 占位符还原为 \n\n
+    const paraMark = '\x00';
     text = text
-        .replaceAll(RegExp(r'[ \t]+'), ' ')
-        .replaceAll(RegExp(r'\n\s*\n+'), '\n\n');
+        .replaceAll('\r', '')
+        .replaceAll(RegExp(r'\n\s*\n+'), paraMark)
+        .replaceAll(RegExp(r'[ \t]*\n[ \t]*'), ' ')
+        .replaceAll(RegExp(r' {2,}'), ' ')
+        .replaceAll(paraMark, '\n\n');
     return text.trim();
   }
 
